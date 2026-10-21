@@ -1,11 +1,13 @@
 name: Publish TypeScript SDK
 
 # Releasing is tagging: bump "version" in typescript/package.json,
-# then `git tag ts-v0.1.1 && git push --tags`.
+# then `git tag ts-v1.0.1 && git push --tags`.
 #
-# npm trusts this workflow directly (trusted publishing over OIDC), so no npm
-# token is stored in the repository. Provenance is attached automatically:
-# the package page links back to this run and the commit it was built from.
+# npm trusts this workflow over OIDC (trusted publishing), so no npm token is
+# stored in the repository. The workflow only stages the release: a maintainer
+# approves it on npmjs.com with 2FA (or `npm stage approve <id>`) before it goes
+# live, so a compromised CI run alone cannot ship a version.
+# Provenance is attached automatically and links the package to this run.
 on:
   push:
     tags:
@@ -26,11 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Trusted publishing needs npm 11.5.1 or newer; Node 24 ships with it.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+
+      # `npm stage` is newer than the npm bundled with Node, so take the latest.
+      - run: npm install -g npm@latest
 
       - run: npm ci
 
@@ -49,6 +53,6 @@ jobs:
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish to npm
+      - name: Stage the release on npm
         if: steps.check.outputs.already == 'false'
-        run: npm publish --access public
+        run: npm stage publish --access public

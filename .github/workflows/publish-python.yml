@@ -1,7 +1,7 @@
 name: Publish Python SDK
 
 # Releasing is tagging: bump __version__ in python/src/cryptoetf/__init__.py,
-# then `git tag py-v0.1.1 && git push --tags`.
+# then `git tag py-v1.0.1 && git push --tags`.
 # PyPI trusts this workflow directly (trusted publishing), so no token is stored.
 on:
   push:
