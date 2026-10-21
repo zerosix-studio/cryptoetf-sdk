@@ -7,7 +7,7 @@ fund AUM, the CEFI sentiment index and coin prices.
 
 | Language | Package | Folder |
 |---|---|---|
-| TypeScript / JavaScript | [`@zerosix-studio/cryptoetf`](https://www.npmjs.com/package/@zerosix-studio/cryptoetf) | [`typescript/`](typescript) |
+| TypeScript / JavaScript | [`cryptoetf`](https://www.npmjs.com/package/cryptoetf) | [`typescript/`](typescript) |
 | Python | [`cryptoetf`](https://pypi.org/project/cryptoetf/) | [`python/`](python) |
 
 Both are zero-dependency and expose the same methods: `flows.summary()`,

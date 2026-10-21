@@ -1,6 +1,6 @@
 # CryptoETF — TypeScript SDK for spot crypto ETF flows
 
-[![npm](https://img.shields.io/npm/v/@zerosix-studio/cryptoetf?color=cb3837&logo=npm)](https://www.npmjs.com/package/@zerosix-studio/cryptoetf)
+[![npm](https://img.shields.io/npm/v/cryptoetf?color=cb3837&logo=npm)](https://www.npmjs.com/package/cryptoetf)
 
 The official client for the [CryptoETF API](https://docs.cryptoetf.today): daily net
 flows of every US-listed spot crypto ETF, fund by fund, plus fund AUM, the CEFI
@@ -13,7 +13,7 @@ and modern browsers.
 ## Install
 
 ```bash
-npm install @zerosix-studio/cryptoetf
+npm install cryptoetf
 ```
 
 ## Get an API key
@@ -24,7 +24,7 @@ in **Profile → For developers**. It is free.
 ## Quick start
 
 ```ts
-import { CryptoETF } from "@zerosix-studio/cryptoetf";
+import { CryptoETF } from "cryptoetf";
 
 const etf = new CryptoETF({ apiKey: process.env.CRYPTOETF_API_KEY });
 
@@ -63,7 +63,7 @@ Every failed call throws `CryptoETFError` with `status`, an optional `code` and,
 on HTTP 429, `retryAfter` in seconds:
 
 ```ts
-import { CryptoETFError } from "@zerosix-studio/cryptoetf";
+import { CryptoETFError } from "cryptoetf";
 
 try {
   await etf.prices();

@@ -99,7 +99,7 @@ CryptoETF(
 
 ## Related
 
-- **TypeScript SDK:** [@zerosix-studio/cryptoetf](https://www.npmjs.com/package/@zerosix-studio/cryptoetf)
+- **TypeScript SDK:** [cryptoetf](https://www.npmjs.com/package/cryptoetf)
 - **No-code access for AI agents:** the hosted MCP server at
   `https://mcp.cryptoetf.today/api/mcp`
 - **Embeddable widgets:** [cryptoetf.today/en/crypto-etf-widgets](https://cryptoetf.today/en/crypto-etf-widgets)
