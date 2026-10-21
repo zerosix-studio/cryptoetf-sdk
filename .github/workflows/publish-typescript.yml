@@ -4,9 +4,7 @@ name: Publish TypeScript SDK
 # then `git tag ts-v1.0.1 && git push --tags`.
 #
 # npm trusts this workflow over OIDC (trusted publishing), so no npm token is
-# stored in the repository. The workflow only stages the release: a maintainer
-# approves it on npmjs.com with 2FA (or `npm stage approve <id>`) before it goes
-# live, so a compromised CI run alone cannot ship a version.
+# stored in the repository and the release goes live as soon as the tag is pushed.
 # Provenance is attached automatically and links the package to this run.
 on:
   push:
@@ -33,7 +31,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      # `npm stage` is newer than the npm bundled with Node, so take the latest.
+      # Trusted publishing needs a recent npm, newer than the one bundled with Node.
       - run: npm install -g npm@latest
 
       - run: npm ci
@@ -53,6 +51,6 @@ jobs:
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Stage the release on npm
+      - name: Publish to npm
         if: steps.check.outputs.already == 'false'
-        run: npm stage publish --access public
+        run: npm publish --access public
