@@ -95,6 +95,7 @@ new CryptoETF({
 
 ## Related
 
+- **Python SDK:** [cryptoetf on PyPI](https://pypi.org/project/cryptoetf/), same methods.
 - **No-code access for AI agents:** the hosted MCP server at
   `https://mcp.cryptoetf.today/api/mcp`
   ([@zerosix-studio/cryptoetf-mcp](https://www.npmjs.com/package/@zerosix-studio/cryptoetf-mcp)).

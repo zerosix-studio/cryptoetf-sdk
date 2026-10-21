@@ -1,6 +1,6 @@
 {
   "name": "cryptoetf",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official TypeScript client for the CryptoETF API: daily net flows of US spot crypto ETFs for 16 assets (BTC, ETH, SOL, XRP, HYPE, DOGE, LINK, AVAX, HBAR, LTC, BNB, DOT, SUI, NEAR, TRX, ZEC), fund by fund, plus fund AUM, the CEFI sentiment index and coin prices. Zero dependencies.",
   "keywords": [
     "crypto",
