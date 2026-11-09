@@ -53,6 +53,24 @@ If `apiKey` is omitted, the client reads `CRYPTOETF_API_KEY` from the environmen
 | `prices()` | `GET /v1/prices` | Spot prices of the 16 coins |
 | `weekly()` | `GET /v1/analytics/weekly` | Seven-day totals per asset |
 
+### Paid datasets
+
+These need a paid API plan; a free key gets `403` with `code: "plan_required"`.
+
+| Method | Endpoint | Returns |
+|---|---|---|
+| `holdings(asset?)` | `GET /v1/holdings` | Coins held by the ETFs, share of circulating supply, per fund, with daily history |
+| `metrics.costBasis(asset?)` | `GET /v1/metrics/cost-basis` | Estimated average entry price of holders, unrealised P&L, streak above/below entry |
+| `metrics.issuerRevenue(asset?)` | `GET /v1/metrics/issuer-revenue` | Estimated sponsor fee revenue per fund, issuer and market |
+| `metrics.staking(asset?)` | `GET /v1/metrics/staking` | Staking status, share staked, disclosed yields and providers per fund |
+| `metrics.vsMiners()` | `GET /v1/metrics/vs-miners` | Bitcoin ETF net creations in BTC against newly mined bitcoin |
+| `fundSnapshots(ticker)` | `GET /v1/funds/{ticker}/snapshots` | Daily shares outstanding, NAV, net assets, coins and premium of one fund |
+| `etfPrices(ticker)` | `GET /v1/etf-prices/{ticker}` | Daily OHLCV of one ETF, regular session |
+| `filings.list()` | `GET /v1/filings` | Crypto ETF applications at the SEC with stage and dates |
+| `filings.get(slug)` | `GET /v1/filings/{slug}` | One application with its document history |
+| `institutions.overview(period?)` | `GET /v1/institutions` | 13F institutional holders for a quarter |
+| `institutions.fund(ticker, { period?, limit? })` | `GET /v1/institutions/funds/{ticker}` | Largest 13F holders of one fund |
+
 `asset` is a code such as `btc`, `eth`, `sol`, `hype` or a full name such as
 `bitcoin`. All values are net US$ millions: positive = inflow, negative = outflow.
 Full field reference: [docs.cryptoetf.today](https://docs.cryptoetf.today).

@@ -12,7 +12,10 @@ fund AUM, the CEFI sentiment index and coin prices.
 
 Both are zero-dependency and expose the same methods: `flows.summary()`,
 `flows.asset(asset)`, `flows.funds(asset)`, `funds()`, `cefi()`, `tickers()`,
-`prices()`, `weekly()`.
+`prices()`, `weekly()`. On a paid plan they also cover holdings, cost basis,
+issuer revenue, staking, bitcoin ETF demand against mined supply, daily fund
+snapshots, ETF prices, SEC filings and 13F institutional holders
+(`snake_case` names in Python, `camelCase` in TypeScript).
 
 **API key:** free, from [cryptoetf.today → Profile → For developers](https://cryptoetf.today/en/profile).
 The free tier covers the last 30 days; 120 requests per minute per key.

@@ -65,5 +65,50 @@ class ClientTest(unittest.TestCase):
         self.assertTrue(any(t["symbol"] == "BTC" for t in etf.tickers()))
 
 
+class PaidDatasetsTest(unittest.TestCase):
+    def test_paths(self):
+        t = fake(200, {"assets": []})
+        etf = CryptoETF("k", base_url="https://example.test/api/v1", transport=t)
+        etf.holdings()
+        etf.holdings("eth")
+        etf.metrics.cost_basis("btc")
+        etf.metrics.issuer_revenue()
+        etf.metrics.staking("sol")
+        etf.metrics.vs_miners()
+        etf.fund_snapshots("IBIT")
+        etf.etf_prices("fbtc")
+        etf.filings.list()
+        etf.filings.get("canary-trx-etf")
+        etf.institutions.overview()
+        etf.institutions.overview("2026Q2")
+        etf.institutions.fund("IBIT", period="2026Q2", limit=25)
+        etf.institutions.fund("ETHA")
+        base = "https://example.test/api/v1"
+        self.assertEqual([u.replace(base, "") for u, _ in t.calls], [
+            "/holdings",
+            "/holdings?asset=eth",
+            "/metrics/cost-basis?asset=btc",
+            "/metrics/issuer-revenue",
+            "/metrics/staking?asset=sol",
+            "/metrics/vs-miners",
+            "/funds/IBIT/snapshots",
+            "/etf-prices/fbtc",
+            "/filings",
+            "/filings/canary-trx-etf",
+            "/institutions",
+            "/institutions?period=2026Q2",
+            "/institutions/funds/IBIT?period=2026Q2&limit=25",
+            "/institutions/funds/ETHA",
+        ])
+
+    def test_plan_required(self):
+        t = fake(403, {"statusCode": 403, "error": "Forbidden", "code": "plan_required", "message": "Paid plan"})
+        etf = CryptoETF("k", transport=t)
+        with self.assertRaises(CryptoETFError) as ctx:
+            etf.metrics.staking()
+        self.assertEqual(ctx.exception.status, 403)
+        self.assertEqual(ctx.exception.code, "plan_required")
+
+
 if __name__ == "__main__":
     unittest.main()

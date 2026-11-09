@@ -44,6 +44,47 @@ test("maps API errors", async () => {
   await assert.rejects(etf2.cefi(), (e) => e.status === 403 && e.code === "api_key_suspended");
 });
 
+test("builds paths for paid datasets", async () => {
+  const f = fakeFetch(200, { assets: [] });
+  const etf = new CryptoETF({ apiKey: "k", fetch: f, baseUrl: "https://example.test/api/v1" });
+  await etf.holdings();
+  await etf.holdings("eth");
+  await etf.metrics.costBasis("btc");
+  await etf.metrics.issuerRevenue();
+  await etf.metrics.staking("sol");
+  await etf.metrics.vsMiners();
+  await etf.fundSnapshots("IBIT");
+  await etf.etfPrices("fbtc");
+  await etf.filings.list();
+  await etf.filings.get("canary-trx-etf");
+  await etf.institutions.overview();
+  await etf.institutions.overview("2026Q2");
+  await etf.institutions.fund("IBIT", { period: "2026Q2", limit: 25 });
+  await etf.institutions.fund("ETHA");
+  const base = "https://example.test/api/v1";
+  assert.deepEqual(f.calls.map((c) => c.url.replace(base, "")), [
+    "/holdings",
+    "/holdings?asset=eth",
+    "/metrics/cost-basis?asset=btc",
+    "/metrics/issuer-revenue",
+    "/metrics/staking?asset=sol",
+    "/metrics/vs-miners",
+    "/funds/IBIT/snapshots",
+    "/etf-prices/fbtc",
+    "/filings",
+    "/filings/canary-trx-etf",
+    "/institutions",
+    "/institutions?period=2026Q2",
+    "/institutions/funds/IBIT?period=2026Q2&limit=25",
+    "/institutions/funds/ETHA",
+  ]);
+});
+
+test("free key on a paid dataset surfaces plan_required", async () => {
+  const etf = new CryptoETF({ apiKey: "k", fetch: fakeFetch(403, { statusCode: 403, error: "Forbidden", code: "plan_required", message: "This dataset needs a paid plan." }) });
+  await assert.rejects(etf.metrics.staking(), (e) => e instanceof CryptoETFError && e.status === 403 && e.code === "plan_required");
+});
+
 test("live API rejects a bad key with 401", { skip: process.env.CRYPTOETF_OFFLINE === "1" }, async () => {
   const etf = new CryptoETF({ apiKey: "invalid-key-for-sdk-test" });
   await assert.rejects(etf.flows.summary(), (e) => e instanceof CryptoETFError && e.status === 401);

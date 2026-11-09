@@ -3,13 +3,28 @@ import type {
   AssetFlows,
   AssetFundFlows,
   CefiIndex,
+  CostBasis,
+  EtfPrices,
+  Filing,
+  Filings,
+  FundInstitutions,
+  FundSnapshots,
   Funds,
   FlowsSummary,
+  Holdings,
+  Institutions,
+  IssuerRevenue,
   Prices,
   RateLimit,
+  Staking,
   Ticker,
+  VsMiners,
   WeeklyAnalytics,
 } from "./types.js";
+
+type AssetArg = AssetCode | (string & {});
+const assetQuery = (asset?: AssetArg) => (asset ? { asset } : undefined);
+const seg = (v: string) => encodeURIComponent(v);
 
 export type * from "./types.js";
 
@@ -52,6 +67,8 @@ function envKey(): string | undefined {
 /**
  * Client for the CryptoETF public API: daily net flows of US spot crypto ETFs
  * for 16 assets, fund by fund, plus fund AUM, the CEFI sentiment index and coin prices.
+ * Paid plans add holdings, cost basis, staking, issuer revenue, BTC vs miners, fund snapshots,
+ * ETF prices, SEC filings and 13F holders.
  *
  * ```ts
  * const etf = new CryptoETF({ apiKey: "…" });
@@ -119,6 +136,57 @@ export class CryptoETF {
   weekly(): Promise<WeeklyAnalytics> {
     return this.get("/analytics/weekly");
   }
+
+  // ── Paid datasets: Builder plan and above. A free key gets 403 `plan_required`. ──
+
+  /** Coins held in trust by the ETFs, per fund and per asset, with share of supply and daily history. Paid plans. */
+  holdings(asset?: AssetArg): Promise<Holdings> {
+    return this.get("/holdings", assetQuery(asset));
+  }
+
+  /** Living metrics computed from flows, fees and SEC filings. Paid plans. */
+  readonly metrics = {
+    /** Estimated average entry price of ETF holders, unrealised P&L and the above/below-entry streak. */
+    costBasis: (asset?: AssetArg): Promise<CostBasis> => this.get("/metrics/cost-basis", assetQuery(asset)),
+    /** Estimated sponsor fee revenue per fund, per issuer and for the market. */
+    issuerRevenue: (asset?: AssetArg): Promise<IssuerRevenue> => this.get("/metrics/issuer-revenue", assetQuery(asset)),
+    /** Staking status, share staked, disclosed yields and providers of each fund. */
+    staking: (asset?: AssetArg): Promise<Staking> => this.get("/metrics/staking", assetQuery(asset)),
+    /** Bitcoin ETF net creations in BTC against newly mined bitcoin. */
+    vsMiners: (): Promise<VsMiners> => this.get("/metrics/vs-miners"),
+  };
+
+  /** Daily snapshots of one fund: shares outstanding, NAV, net assets, coins, premium. Paid plans. */
+  fundSnapshots(ticker: string): Promise<FundSnapshots> {
+    return this.get(`/funds/${seg(ticker)}/snapshots`);
+  }
+
+  /** Daily OHLCV of one ETF ticker for the regular US session. Paid plans. */
+  etfPrices(ticker: string): Promise<EtfPrices> {
+    return this.get(`/etf-prices/${seg(ticker)}`);
+  }
+
+  /** Crypto ETF applications at the SEC. Paid plans. */
+  readonly filings = {
+    /** Every tracked application with its stage, key dates and recent documents. */
+    list: (): Promise<Filings> => this.get("/filings"),
+    /** One application with its full document history; slugs come from `list()`. */
+    get: (slug: string): Promise<Filing> => this.get(`/filings/${seg(slug)}`),
+  };
+
+  /** Institutional holders from quarterly SEC 13F filings. Paid plans. */
+  readonly institutions = {
+    /** 13F overview for a quarter (latest unless `period`, e.g. `2026Q2`). */
+    overview: (period?: string): Promise<Institutions> =>
+      this.get("/institutions", period ? { period } : undefined),
+    /** Largest 13F holders of one fund, up to `limit` (default 10, max 50). */
+    fund: (ticker: string, options: { period?: string; limit?: number } = {}): Promise<FundInstitutions> => {
+      const q: Record<string, string> = {};
+      if (options.period) q.period = options.period;
+      if (options.limit !== undefined) q.limit = String(options.limit);
+      return this.get(`/institutions/funds/${seg(ticker)}`, Object.keys(q).length ? q : undefined);
+    },
+  };
 
   private async get<T>(path: string, query?: Record<string, string>): Promise<T> {
     const url = new URL(this.baseUrl + path);

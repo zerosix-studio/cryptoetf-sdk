@@ -15,11 +15,22 @@ from .types import (
     AssetFlows,
     AssetFundFlows,
     CefiIndex,
+    CostBasis,
+    EtfPrices,
+    Filing,
+    Filings,
     FlowsSummary,
+    FundInstitutions,
+    FundSnapshots,
     Funds,
+    Holdings,
+    Institutions,
+    IssuerRevenue,
     Prices,
     RateLimit,
+    Staking,
     Ticker,
+    VsMiners,
     WeeklyAnalytics,
 )
 
@@ -80,6 +91,72 @@ class _Flows:
         return cast(AssetFundFlows, self._c._get(f"/flows/{urllib.parse.quote(asset, safe='')}/funds"))
 
 
+def _seg(value: str) -> str:
+    return urllib.parse.quote(value, safe="")
+
+
+def _asset_q(asset: Optional[str]) -> Optional[Dict[str, str]]:
+    return {"asset": asset} if asset else None
+
+
+class _Metrics:
+    """Living metrics (paid plans): cost basis, issuer revenue, staking, BTC vs miners."""
+
+    def __init__(self, client: "CryptoETF"):
+        self._c = client
+
+    def cost_basis(self, asset: Optional[str] = None) -> CostBasis:
+        """Estimated average entry price of ETF holders, unrealised P&L and the above/below-entry streak."""
+        return cast(CostBasis, self._c._get("/metrics/cost-basis", _asset_q(asset)))
+
+    def issuer_revenue(self, asset: Optional[str] = None) -> IssuerRevenue:
+        """Estimated sponsor fee revenue per fund, per issuer and for the market."""
+        return cast(IssuerRevenue, self._c._get("/metrics/issuer-revenue", _asset_q(asset)))
+
+    def staking(self, asset: Optional[str] = None) -> Staking:
+        """Staking status, share staked, disclosed yields and providers of each fund."""
+        return cast(Staking, self._c._get("/metrics/staking", _asset_q(asset)))
+
+    def vs_miners(self) -> VsMiners:
+        """Bitcoin ETF net creations in BTC against newly mined bitcoin."""
+        return cast(VsMiners, self._c._get("/metrics/vs-miners"))
+
+
+class _Filings:
+    """Crypto ETF applications at the SEC (paid plans)."""
+
+    def __init__(self, client: "CryptoETF"):
+        self._c = client
+
+    def list(self) -> Filings:
+        """Every tracked application with its stage, key dates and recent documents."""
+        return cast(Filings, self._c._get("/filings"))
+
+    def get(self, slug: str) -> Filing:
+        """One application with its full document history; slugs come from ``list()``."""
+        return cast(Filing, self._c._get(f"/filings/{_seg(slug)}"))
+
+
+class _Institutions:
+    """Institutional holders from quarterly SEC 13F filings (paid plans)."""
+
+    def __init__(self, client: "CryptoETF"):
+        self._c = client
+
+    def overview(self, period: Optional[str] = None) -> Institutions:
+        """13F overview for a quarter (latest unless ``period``, e.g. ``2026Q2``)."""
+        return cast(Institutions, self._c._get("/institutions", {"period": period} if period else None))
+
+    def fund(self, ticker: str, *, period: Optional[str] = None, limit: Optional[int] = None) -> FundInstitutions:
+        """Largest 13F holders of one fund, up to ``limit`` (default 10, max 50)."""
+        q: Dict[str, str] = {}
+        if period:
+            q["period"] = period
+        if limit is not None:
+            q["limit"] = str(limit)
+        return cast(FundInstitutions, self._c._get(f"/institutions/funds/{_seg(ticker)}", q or None))
+
+
 class CryptoETF:
     """Daily net flows of US spot crypto ETFs for 16 assets, fund by fund, plus
     fund AUM, the CEFI sentiment index and coin prices.
@@ -111,6 +188,12 @@ class CryptoETF:
         self.rate_limit: Optional[RateLimit] = None
         #: Daily net flows: ``summary()``, ``asset(asset)``, ``funds(asset)``.
         self.flows = _Flows(self)
+        #: Paid plans: ``cost_basis()``, ``issuer_revenue()``, ``staking()``, ``vs_miners()``.
+        self.metrics = _Metrics(self)
+        #: Paid plans: ``list()``, ``get(slug)``.
+        self.filings = _Filings(self)
+        #: Paid plans: ``overview(period)``, ``fund(ticker, period=, limit=)``.
+        self.institutions = _Institutions(self)
 
     def funds(self, asset: Optional[str] = None) -> Funds:
         """Fund directory with assets under management; all 16 assets unless ``asset`` is given."""
@@ -131,6 +214,20 @@ class CryptoETF:
     def weekly(self) -> WeeklyAnalytics:
         """Seven-day flow totals per asset."""
         return cast(WeeklyAnalytics, self._get("/analytics/weekly"))
+
+    # Paid datasets: Builder plan and above. A free key gets 403 ``plan_required``.
+
+    def holdings(self, asset: Optional[str] = None) -> Holdings:
+        """Coins held in trust by the ETFs, per fund and per asset, with share of supply. Paid plans."""
+        return cast(Holdings, self._get("/holdings", _asset_q(asset)))
+
+    def fund_snapshots(self, ticker: str) -> FundSnapshots:
+        """Daily snapshots of one fund: shares outstanding, NAV, net assets, coins, premium. Paid plans."""
+        return cast(FundSnapshots, self._get(f"/funds/{_seg(ticker)}/snapshots"))
+
+    def etf_prices(self, ticker: str) -> EtfPrices:
+        """Daily OHLCV of one ETF ticker for the regular US session. Paid plans."""
+        return cast(EtfPrices, self._get(f"/etf-prices/{_seg(ticker)}"))
 
     def _get(self, path: str, query: Optional[Dict[str, str]] = None) -> Any:
         url = self._base + path
