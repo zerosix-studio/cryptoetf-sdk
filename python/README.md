@@ -111,7 +111,7 @@ except CryptoETFError as e:
 CryptoETF(
     api_key="...",          # default: CRYPTOETF_API_KEY
     timeout=15.0,           # seconds per request
-    base_url="https://api.cryptoetf.today/api/v1",
+    base_url="https://api.cryptoetf.today/v1",
 )
 ```
 

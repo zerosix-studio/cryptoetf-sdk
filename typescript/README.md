@@ -106,7 +106,7 @@ try {
 new CryptoETF({
   apiKey: "…",       // default: process.env.CRYPTOETF_API_KEY
   timeoutMs: 15000,  // per request
-  baseUrl: "https://api.cryptoetf.today/api/v1",
+  baseUrl: "https://api.cryptoetf.today/v1",
   fetch: customFetch,
 });
 ```

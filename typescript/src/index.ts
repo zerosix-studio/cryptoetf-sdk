@@ -28,7 +28,7 @@ const seg = (v: string) => encodeURIComponent(v);
 
 export type * from "./types.js";
 
-export const DEFAULT_BASE_URL = "https://api.cryptoetf.today/api/v1";
+export const DEFAULT_BASE_URL = "https://api.cryptoetf.today/v1";
 
 export interface CryptoETFOptions {
   /** API key from https://cryptoetf.today/en/profile. Defaults to the `CRYPTOETF_API_KEY` environment variable. */

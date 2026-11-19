@@ -34,7 +34,7 @@ from .types import (
     WeeklyAnalytics,
 )
 
-DEFAULT_BASE_URL = "https://api.cryptoetf.today/api/v1"
+DEFAULT_BASE_URL = "https://api.cryptoetf.today/v1"
 KEY_HELP = (
     "API key required. Get a free key at https://cryptoetf.today/en/profile "
     "and pass CryptoETF(api_key=...) or set CRYPTOETF_API_KEY."
