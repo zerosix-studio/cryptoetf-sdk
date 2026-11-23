@@ -22,7 +22,7 @@ class ClientTest(unittest.TestCase):
         try:
             with self.assertRaises(CryptoETFError) as ctx:
                 CryptoETF()
-            self.assertIn("cryptoetf.today/en/profile", ctx.exception.message)
+            self.assertIn("cryptoetf.today/en/console/keys", ctx.exception.message)
         finally:
             if saved:
                 os.environ["CRYPTOETF_API_KEY"] = saved
@@ -101,6 +101,51 @@ class PaidDatasetsTest(unittest.TestCase):
             "/institutions/funds/ETHA",
         ])
 
+    def test_rwa_paths(self):
+        t = fake(200, {"rows": []})
+        etf = CryptoETF("k", base_url="https://example.test/v1", transport=t)
+        etf.stablecoins.list()
+        etf.stablecoins.list("tron")
+        etf.stablecoins.history(id=631872)
+        etf.stablecoins.get(631872)
+        etf.stablecoins.frozen()
+        etf.stablecoins.frozen_addresses()
+        etf.rwa.overview()
+        etf.rwa.flows(7)
+        etf.rwa.flow_history()
+        etf.rwa.issuers(segment="treasuries")
+        etf.rwa.chains()
+        etf.rwa.products(segment="gold", limit=100, offset=100)
+        etf.rwa.product("ousg", 30)
+        etf.rwa.assets(segment="stocks")
+        etf.rwa.tokens(address="0xabc")
+        etf.rwa.holders("ethereum", "0xabc", 10)
+        etf.rwa.premiums()
+        etf.rwa.weekends()
+        etf.rwa.venues()
+        base = "https://example.test/v1"
+        self.assertEqual([u.replace(base, "") for u, _ in t.calls], [
+            "/stablecoins",
+            "/stablecoins?chain=tron",
+            "/stablecoins/history?id=631872",
+            "/stablecoins/631872",
+            "/stablecoins/frozen",
+            "/stablecoins/frozen/addresses",
+            "/rwa/overview",
+            "/rwa/flows?days=7",
+            "/rwa/flows/history",
+            "/rwa/issuers?segment=treasuries",
+            "/rwa/chains",
+            "/rwa/products?segment=gold&limit=100&offset=100",
+            "/rwa/products/ousg?days=30",
+            "/rwa/assets?segment=stocks",
+            "/rwa/tokens?address=0xabc",
+            "/rwa/tokens/ethereum/0xabc/holders?limit=10",
+            "/rwa/premiums",
+            "/rwa/weekends",
+            "/rwa/venues",
+        ])
+
     def test_plan_required(self):
         t = fake(403, {"statusCode": 403, "error": "Forbidden", "code": "plan_required", "message": "Paid plan"})
         etf = CryptoETF("k", transport=t)
@@ -109,6 +154,15 @@ class PaidDatasetsTest(unittest.TestCase):
         self.assertEqual(ctx.exception.status, 403)
         self.assertEqual(ctx.exception.code, "plan_required")
 
+
+    def test_indexes(self):
+        t = fake(200, {"index": "WSMI", "current": 17, "date": "2026-11-22", "windowDays": 30, "history": []})
+        etf = CryptoETF(api_key="k", transport=t, base_url="https://example.test/v1")
+        self.assertEqual(etf.wsmi()["current"], 17)
+        etf.stablecoins.index()
+        etf.rwa.index()
+        paths = [u.split("example.test")[1] for u, _ in t.calls]
+        self.assertEqual(paths, ["/v1/index/wsmi", "/v1/index/stablecoins", "/v1/index/rwa"])
 
 if __name__ == "__main__":
     unittest.main()

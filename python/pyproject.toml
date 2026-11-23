@@ -5,13 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "cryptoetf"
 dynamic = ["version"]
-description = "Official Python client for the CryptoETF API: daily net flows of US spot crypto ETFs for 16 assets (BTC, ETH, SOL, XRP, HYPE, DOGE, LINK, AVAX, HBAR, LTC, BNB, DOT, SUI, NEAR, TRX, ZEC), fund by fund, plus fund AUM, the CEFI sentiment index and coin prices; on paid plans also holdings, cost basis, staking, issuer revenue, SEC filings and 13F holders. Zero dependencies."
+description = "Official Python client for the CryptoETF API: daily net flows of US spot crypto ETFs for 16 assets (BTC, ETH, SOL, XRP, HYPE, DOGE, LINK, AVAX, HBAR, LTC, BNB, DOT, SUI, NEAR, TRX, ZEC), fund by fund, plus fund AUM, the Wall Street Money Index (WSMI) and the CEFI ETF flow index, and coin prices; on paid plans also holdings, cost basis, staking, issuer revenue, SEC filings and 13F holders. Also stablecoins and tokenized real-world assets (RWA), with their own indexes. Zero dependencies."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "cryptoetf.today" }]
 requires-python = ">=3.9"
-keywords = ["crypto", "etf", "bitcoin-etf", "ethereum-etf", "etf-flows", "spot-etf", "ibit", "api", "sdk"]
+keywords = ["crypto", "etf", "bitcoin-etf", "ethereum-etf", "etf-flows", "spot-etf", "ibit", "stablecoins", "rwa", "tokenized-assets", "api", "sdk"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",

@@ -3,6 +3,7 @@ import type {
   AssetFlows,
   AssetFundFlows,
   CefiIndex,
+  ChannelIndex,
   CostBasis,
   EtfPrices,
   Filing,
@@ -16,6 +17,29 @@ import type {
   IssuerRevenue,
   Prices,
   RateLimit,
+  WsmiIndex,
+  RwaAsset,
+  RwaChain,
+  RwaFilter,
+  RwaFlowHistory,
+  RwaFlows,
+  RwaHolders,
+  RwaIssuer,
+  RwaOverview,
+  RwaPage,
+  RwaPaging,
+  RwaPremiums,
+  RwaProduct,
+  RwaProductDetail,
+  RwaToken,
+  RwaTotal,
+  RwaVenues,
+  RwaWeekends,
+  StablecoinDetail,
+  StablecoinHistory,
+  Stablecoins,
+  StablecoinsFrozen,
+  StablecoinsFrozenAddresses,
   Staking,
   Ticker,
   VsMiners,
@@ -25,13 +49,19 @@ import type {
 type AssetArg = AssetCode | (string & {});
 const assetQuery = (asset?: AssetArg) => (asset ? { asset } : undefined);
 const seg = (v: string) => encodeURIComponent(v);
+/** Non-empty values become query params; numbers are stringified. */
+const query = (q: Record<string, string | number | undefined>) => {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "") out[k] = String(v);
+  return Object.keys(out).length ? out : undefined;
+};
 
 export type * from "./types.js";
 
 export const DEFAULT_BASE_URL = "https://api.cryptoetf.today/v1";
 
 export interface CryptoETFOptions {
-  /** API key from https://cryptoetf.today/en/profile. Defaults to the `CRYPTOETF_API_KEY` environment variable. */
+  /** API key from https://cryptoetf.today/en/console/keys. Defaults to the `CRYPTOETF_API_KEY` environment variable. */
   apiKey?: string;
   /** Override the API root, e.g. for a proxy. */
   baseUrl?: string;
@@ -68,7 +98,7 @@ function envKey(): string | undefined {
  * Client for the CryptoETF public API: daily net flows of US spot crypto ETFs
  * for 16 assets, fund by fund, plus fund AUM, the CEFI sentiment index and coin prices.
  * Paid plans add holdings, cost basis, staking, issuer revenue, BTC vs miners, fund snapshots,
- * ETF prices, SEC filings and 13F holders.
+ * ETF prices, SEC filings and 13F holders. Also stablecoins and tokenized real-world assets (RWA).
  *
  * ```ts
  * const etf = new CryptoETF({ apiKey: "…" });
@@ -88,7 +118,7 @@ export class CryptoETF {
     const key = options.apiKey ?? envKey();
     if (!key) {
       throw new CryptoETFError(
-        "API key required. Get a free key at https://cryptoetf.today/en/profile and pass it as { apiKey } or set CRYPTOETF_API_KEY.",
+        "API key required. Get a free key at https://cryptoetf.today/en/console/keys and pass it as { apiKey } or set CRYPTOETF_API_KEY.",
         401,
       );
     }
@@ -117,7 +147,15 @@ export class CryptoETF {
     return this.get("/funds", asset ? { asset } : undefined);
   }
 
-  /** CEFI — Crypto ETF Flow Index, a 0–100 sentiment gauge, with its recent history. */
+  /**
+   * WSMI — Wall Street Money Index: one 0–100 reading across spot crypto ETFs (CEFI, 50%),
+   * stablecoins (30%) and tokenized assets (20%), with channel parts and history. Same numbers as cryptoetf.today.
+   */
+  wsmi(): Promise<WsmiIndex> {
+    return this.get("/index/wsmi");
+  }
+
+  /** CEFI — Crypto ETF Flow Index, the ETF channel of WSMI: a 0–100 gauge with its recent history. */
   cefi(): Promise<CefiIndex> {
     return this.get("/index/cefi");
   }
@@ -186,6 +224,68 @@ export class CryptoETF {
       if (options.limit !== undefined) q.limit = String(options.limit);
       return this.get(`/institutions/funds/${seg(ticker)}`, Object.keys(q).length ? q : undefined);
     },
+  };
+
+  /**
+   * Stablecoins: supply, USD value and flows per coin and chain. Amounts are whole US dollars.
+   * Free keys get the snapshot and 30 days of history; paid plans the whole history and frozen addresses.
+   */
+  readonly stablecoins = {
+    /** Stablecoin index: the WSMI channel for stablecoins, 0–100, with history. */
+    index: (): Promise<ChannelIndex> => this.get("/index/stablecoins"),
+    /** Every stablecoin with circulating supply, USD value and 7/30-day flows; one chain if `chain` is given. */
+    list: (chain?: string): Promise<Stablecoins> => this.get("/stablecoins", query({ chain })),
+    /** Daily USD value: all stablecoins, one chain and / or one coin (`id` from `list()`). */
+    history: (options: { chain?: string; id?: number } = {}): Promise<StablecoinHistory> =>
+      this.get("/stablecoins/history", query(options)),
+    /** One coin: contracts on every chain and daily circulating supply. */
+    get: (id: number): Promise<StablecoinDetail> => this.get(`/stablecoins/${seg(String(id))}`),
+    /** Frozen balances per coin contract. */
+    frozen: (): Promise<StablecoinsFrozen> => this.get("/stablecoins/frozen"),
+    /** Largest frozen addresses and the frozen history. Paid plans. */
+    frozenAddresses: (): Promise<StablecoinsFrozenAddresses> => this.get("/stablecoins/frozen/addresses"),
+  };
+
+  /**
+   * Tokenized real-world assets: treasuries, gold, stocks, credit and more. Amounts are whole US dollars.
+   * Free keys get the market snapshot, 30 days of flows and the top 25 products; the rest is on paid plans.
+   */
+  readonly rwa = {
+    /** Tokenized asset index: the WSMI channel for tokenized assets, 0–100, with history. */
+    index: (): Promise<ChannelIndex> => this.get("/index/rwa"),
+    /** Market by segment with totals, top issuers and movers. */
+    overview: (): Promise<RwaOverview> => this.get("/rwa/overview"),
+    /** Daily net flow by segment (Free: up to 30 days; paid: up to 120 days with issuers and top products). */
+    flows: (days?: number): Promise<RwaFlows> => this.get("/rwa/flows", query({ days })),
+    /** Daily net flow over the whole history. Paid plans. */
+    flowHistory: (): Promise<RwaFlowHistory> => this.get("/rwa/flows/history"),
+    /** Every issuer with value, flows, tokens, holders and segments. */
+    issuers: (filter: Omit<RwaFilter, "issuer"> = {}): Promise<{ total: RwaTotal; issuers: RwaIssuer[]; updatedAt: string }> =>
+      this.get("/rwa/issuers", query({ ...filter })),
+    /** Every chain with tokenized assets. */
+    chains: (filter: Omit<RwaFilter, "chain"> = {}): Promise<{ total: RwaTotal; chains: RwaChain[]; updatedAt: string }> =>
+      this.get("/rwa/chains", query({ ...filter })),
+    /** Products, largest first (Free: top 25; paid: every product, paged, with price and APY). */
+    products: (options: RwaFilter & RwaPaging = {}): Promise<RwaPage<RwaProduct>> =>
+      this.get("/rwa/products", query({ ...options })),
+    /** One product by slug, ticker or contract address, with contracts and daily history. Paid plans. */
+    product: (slug: string, days?: number): Promise<RwaProductDetail> =>
+      this.get(`/rwa/products/${seg(slug)}`, query({ days })),
+    /** Underlyings (a share, T-bills, gold …) summed over issuers and chains. Paid plans. */
+    assets: (options: Omit<RwaFilter, "asset"> & RwaPaging = {}): Promise<RwaPage<RwaAsset>> =>
+      this.get("/rwa/assets", query({ ...options })),
+    /** Token contracts; pass `address` to find one contract on any chain. Paid plans. */
+    tokens: (options: RwaFilter & RwaPaging & { address?: string } = {}): Promise<RwaPage<RwaToken>> =>
+      this.get("/rwa/tokens", query({ ...options })),
+    /** Largest holders of one contract. Paid plans. */
+    holders: (chain: string, address: string, limit?: number): Promise<RwaHolders> =>
+      this.get(`/rwa/tokens/${seg(chain)}/${seg(address)}/holders`, query({ limit })),
+    /** Tokenized stocks against the share price. Paid plans. */
+    premiums: (): Promise<RwaPremiums> => this.get("/rwa/premiums"),
+    /** Tokenized stocks over weekends. Paid plans. */
+    weekends: (): Promise<RwaWeekends> => this.get("/rwa/weekends"),
+    /** Where tokenized assets are held: lending, DEX pools, reserves, vaults. Paid plans. */
+    venues: (): Promise<RwaVenues> => this.get("/rwa/venues"),
   };
 
   private async get<T>(path: string, query?: Record<string, string>): Promise<T> {

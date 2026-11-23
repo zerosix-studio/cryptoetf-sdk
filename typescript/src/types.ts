@@ -111,6 +111,47 @@ export interface CefiIndex {
   history: IndexPoint[];
 }
 
+/** Channel indexes behind one WSMI value, each 0–100 (null while a channel has no reading). */
+export interface WsmiParts {
+  etf: number | null;
+  stb: number | null;
+  rwa: number | null;
+}
+
+export interface WsmiPoint {
+  date: string;
+  /** 0–100 with one decimal; 50 = neutral. */
+  value: number;
+  parts: WsmiParts;
+}
+
+/** WSMI — Wall Street Money Index: spot crypto ETFs (CEFI, 50%), stablecoins (30%), tokenized assets (20%). */
+export interface WsmiIndex {
+  index: "WSMI";
+  /** 0–100; 50 = neutral, below it more money is leaving than usual. */
+  current: number;
+  date: string;
+  change: number | null;
+  weekAgo: number | null;
+  monthAgo: number | null;
+  parts: WsmiParts;
+  weights: { etf: number; stb: number; rwa: number };
+  windowDays: number;
+  history: WsmiPoint[];
+}
+
+/** Stablecoin or tokenized asset index — one WSMI channel on its own, 0–100. */
+export interface ChannelIndex {
+  index: "stablecoins" | "rwa";
+  current: number;
+  date: string;
+  change: number | null;
+  weekAgo: number | null;
+  monthAgo: number | null;
+  windowDays: number;
+  history: IndexPoint[];
+}
+
 export interface Ticker {
   symbol: string;
   asset: string;
@@ -478,4 +519,356 @@ export interface FundInstitutions extends InstitutionsMeta {
   movers?: unknown;
   series?: unknown[];
   updatedAt: string;
+}
+
+// ── Stablecoins and tokenized RWA ───────────────────────────────────────────
+// Amounts are whole US dollars (`…Usd`), not millions as in ETF flows.
+// A missing value is null: no price ≠ worth nothing.
+
+/** Flow fields shared by RWA rows. */
+export interface UsdFlows {
+  valueUsd: number | null;
+  flow1dUsd: number | null;
+  flow7dUsd: number | null;
+  flow30dUsd: number | null;
+}
+
+export interface Stablecoin {
+  id: number;
+  symbol: string | null;
+  name: string | null;
+  issuerId: string | null;
+  issuer: string | null;
+  /** Peg currency, e.g. `USD`, `EUR`. */
+  peg: string | null;
+  circulating: number | null;
+  valueUsd: number | null;
+  flow7dUsd: number | null;
+  flow30dUsd: number | null;
+  chains: string[];
+  tokens: number;
+  unpricedTokens: number;
+  asOf: string | null;
+}
+
+export interface Stablecoins {
+  /** The chain filter, or null for every chain. */
+  chain: string | null;
+  methodology: string | null;
+  stablecoins: Stablecoin[];
+  byChain: { chain: string | null; valueUsd: number | null; tokens: number }[];
+  updatedAt: string;
+}
+
+export interface StablecoinHistory {
+  methodology: string | null;
+  /** First date your plan can see; null = no limit. */
+  historyFrom: string | null;
+  days: { date: string; valueUsd: number | null }[];
+  updatedAt: string;
+}
+
+export interface StablecoinDetail {
+  id: number;
+  symbol: string | null;
+  name: string | null;
+  issuerId: string | null;
+  issuer: string | null;
+  peg: string | null;
+  contracts: Array<{
+    chain: string | null;
+    address: string | null;
+    supply: number | null;
+    circulating: number | null;
+    valueUsd: number | null;
+    flow7dUsd: number | null;
+    flow30dUsd: number | null;
+    supplyMethod: string | null;
+    historyFrom: string | null;
+    asOf: string | null;
+  }>;
+  methodology: string | null;
+  historyFrom: string | null;
+  days: { date: string; circulating: number | null; contracts: number }[];
+  updatedAt: string;
+}
+
+export interface StablecoinsFrozen {
+  methodology: string | null;
+  contracts: Array<{
+    symbol: string | null;
+    issuerId: string | null;
+    issuer: string | null;
+    chain: string | null;
+    contract: string | null;
+    frozenAddresses: number;
+    addressesWithBalance: number;
+    frozen: number | null;
+    frozenUsd: number | null;
+    destroyed: number | null;
+    method: string | null;
+    asOf: string | null;
+  }>;
+  updatedAt: string;
+}
+
+export interface StablecoinsFrozenAddresses {
+  methodology: string | null;
+  topAddresses: Array<{
+    chain: string | null;
+    address: string | null;
+    symbol: string | null;
+    issuerId: string | null;
+    balance: number | null;
+    balanceUsd: number | null;
+    frozenOn: string | null;
+  }>;
+  frozenUsdHistory: { date: string; frozenUsd: number | null }[];
+  frozenAddressesHistory: { date: string; addresses: number }[];
+  destroyedByMonth: { month: string | null; destroyedUsd: number | null; events: number }[];
+  updatedAt: string;
+}
+
+export interface RwaSegment extends UsdFlows {
+  segment: string | null;
+  tokens: number;
+  unpricedTokens: number;
+  asOf: string | null;
+}
+
+export interface RwaOverview {
+  methodology: string | null;
+  total: { valueUsd: number; flow1dUsd: number; flow7dUsd: number; flow30dUsd: number; tokens: number; unpricedTokens: number };
+  segments: RwaSegment[];
+  stocksByExposure: { exposure: string | null; valueUsd: number | null; flow7dUsd: number | null; tokens: number }[];
+  topIssuers: { segment: string | null; issuerId: string | null; issuer: string | null; valueUsd: number | null; flow1dUsd: number | null; products: number }[];
+  movers: Array<{
+    window: string | null;
+    segment: string | null;
+    slug: string | null;
+    symbol: string | null;
+    issuerId: string | null;
+    issuer: string | null;
+    valueUsd: number | null;
+    flowUsd: number | null;
+  }>;
+  updatedAt: string;
+}
+
+export interface RwaSegmentFlow {
+  netUsd: number | null;
+  mintUsd: number | null;
+  burnUsd: number | null;
+  interestUsd: number | null;
+}
+
+export interface RwaMover {
+  segment: string | null;
+  symbol: string | null;
+  issuerId: string | null;
+  issuer: string | null;
+  netUsd: number | null;
+}
+
+export interface RwaFlowDay {
+  date: string;
+  /** `final`, or `preliminary` for the current UTC day. */
+  status: string | null;
+  netUsd: number;
+  segments: Record<string, RwaSegmentFlow>;
+  /** Paid plans only. */
+  issuers?: Array<RwaSegmentFlow & { issuerId: string | null; issuer: string | null; segment: string | null }>;
+  /** Paid plans only. */
+  topIn?: RwaMover[];
+  /** Paid plans only. */
+  topOut?: RwaMover[];
+}
+
+export interface RwaFlows {
+  methodology: string | null;
+  days: RwaFlowDay[];
+  updatedAt: string;
+}
+
+export interface RwaFlowHistory {
+  methodology: string | null;
+  days: { date: string; status: string | null; netUsd: number | null; segments: Record<string, number | null> }[];
+  updatedAt: string;
+}
+
+export interface RwaTotal extends UsdFlows {
+  tokens: number;
+  unpricedTokens: number;
+  holders: number;
+  asOf: string | null;
+}
+
+export interface RwaIssuer extends UsdFlows {
+  id: string | null;
+  name: string | null;
+  url: string | null;
+  tokens: number;
+  unpricedTokens: number;
+  holders: number;
+  products: number;
+  chains: string[];
+  segments: Record<string, { valueUsd: number | null; flow7dUsd: number | null; tokens: number }>;
+  asOf: string | null;
+}
+
+export interface RwaChain extends UsdFlows {
+  id: string | null;
+  name: string | null;
+  kind: string | null;
+  evmChainId: number | null;
+  tokens: number;
+  unpricedTokens: number;
+  holders: number;
+  issuers: number;
+  products: number;
+  historyFrom: string | null;
+  asOf: string | null;
+}
+
+export interface RwaProduct extends UsdFlows {
+  slug: string | null;
+  symbol: string | null;
+  name: string | null;
+  issuerId: string | null;
+  issuer: string | null;
+  segment: string | null;
+  assetId: string | null;
+  assetSymbol: string | null;
+  /** False when no price was found: `valueUsd` is then null. */
+  priced: boolean;
+  holders: number;
+  chains: string[];
+  asOf: string | null;
+  // Paid plans only:
+  circulating?: number | null;
+  supply?: number | null;
+  priceUsd?: number | null;
+  priceMethod?: string | null;
+  priceDay?: string | null;
+  apy7d?: number | null;
+  apyBasis?: string | null;
+  apyFrom?: string | null;
+  apyTo?: string | null;
+  contracts?: number | null;
+  transfersDay?: number;
+}
+
+export interface RwaToken extends UsdFlows {
+  chain: string | null;
+  chainName: string | null;
+  address: string | null;
+  status: string | null;
+  slug: string | null;
+  symbol: string | null;
+  issuerId: string | null;
+  issuer: string | null;
+  segment: string | null;
+  assetId: string | null;
+  assetSymbol: string | null;
+  supply: number | null;
+  circulating: number | null;
+  holders: number;
+  transfersDay: number;
+  priceUsd: number | null;
+  priceMethod: string | null;
+  priceDay: string | null;
+  historyFrom: string | null;
+  asOf: string | null;
+}
+
+export interface RwaAsset extends UsdFlows {
+  id: string | null;
+  symbol: string | null;
+  kind: string | null;
+  circulating: number | null;
+  tokens: number;
+  unpricedTokens: number;
+  holders: number;
+  products: number;
+  issuers: string[];
+  chains: string[];
+  asOf: string | null;
+}
+
+/** A page of rows with the total for the filter. */
+export interface RwaPage<T> {
+  limit: number;
+  offset: number;
+  total: RwaTotal;
+  /** Rows matching the filter, across all pages. */
+  count: number;
+  rows: T[];
+  updatedAt: string;
+}
+
+export interface RwaProductDetail extends RwaProduct {
+  contractsList: RwaToken[];
+  days: { date: string; circulating: number | null; valueUsd: number | null }[];
+  updatedAt: string;
+}
+
+export interface RwaHolders {
+  chain: string;
+  address: string;
+  holders: { address: string | null; amount: number | null; pctOfSupply: number | null; role: string | null }[];
+  updatedAt: string;
+}
+
+/** Tokenized stocks against the share price. `gap` is a fraction: 0.01 = token 1% above the share. */
+export interface RwaPremiums {
+  asOf: string | null;
+  noiseThreshold: number | null;
+  rows: Array<Record<string, unknown> & { ticker: string | null; symbol: string | null; gap: number | null; close: number | null }>;
+  updatedAt: string;
+}
+
+/** Tokenized stocks over weekends. Statistics are passed through as flat objects. */
+export interface RwaWeekends {
+  asOf: string | null;
+  noiseThreshold: number | null;
+  live: Record<string, number | string | boolean | null>;
+  overall: Record<string, number | string | boolean | null>;
+  byMove: Record<string, number | string | boolean | null>[];
+  gapFill: Record<string, number | string | boolean | null>;
+  weekends: Record<string, number | string | boolean | null>[];
+  updatedAt: string;
+}
+
+export interface RwaVenues {
+  methodology: string | null;
+  totalUsd: number | null;
+  labelledUsd: number | null;
+  categories: Array<{
+    id: string | null;
+    name: string | null;
+    note: string | null;
+    valueUsd: number | null;
+    bySegment: Record<string, number | null>;
+    protocols: Array<{
+      name: string | null;
+      valueUsd: number | null;
+      chains: string[];
+      bySegment: Record<string, number | null>;
+      tokens: { symbol: string | null; segment: string | null; valueUsd: number | null }[];
+    }>;
+  }>;
+  updatedAt: string;
+}
+
+/** Filters accepted by RWA lists: comma-separated ids. */
+export interface RwaFilter {
+  segment?: string;
+  issuer?: string;
+  chain?: string;
+  asset?: string;
+}
+
+export interface RwaPaging {
+  limit?: number;
+  offset?: number;
 }

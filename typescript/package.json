@@ -1,7 +1,7 @@
 {
   "name": "cryptoetf",
-  "version": "1.1.1",
-  "description": "Official TypeScript client for the CryptoETF API: daily net flows of US spot crypto ETFs for 16 assets (BTC, ETH, SOL, XRP, HYPE, DOGE, LINK, AVAX, HBAR, LTC, BNB, DOT, SUI, NEAR, TRX, ZEC), fund by fund, plus fund AUM, the CEFI sentiment index and coin prices; on paid plans also holdings, cost basis, staking, issuer revenue, SEC filings and 13F holders. Zero dependencies.",
+  "version": "1.2.0",
+  "description": "Official TypeScript client for the CryptoETF API: daily net flows of US spot crypto ETFs for 16 assets (BTC, ETH, SOL, XRP, HYPE, DOGE, LINK, AVAX, HBAR, LTC, BNB, DOT, SUI, NEAR, TRX, ZEC), fund by fund, plus fund AUM, the Wall Street Money Index (WSMI) and the CEFI ETF flow index, and coin prices; on paid plans also holdings, cost basis, staking, issuer revenue, SEC filings and 13F holders. Also stablecoins and tokenized real-world assets (RWA), with their own indexes. Zero dependencies.",
   "keywords": [
     "crypto",
     "etf",
@@ -10,6 +10,9 @@
     "etf-flows",
     "spot-etf",
     "ibit",
+    "stablecoins",
+    "rwa",
+    "tokenized-assets",
     "api",
     "sdk"
   ],

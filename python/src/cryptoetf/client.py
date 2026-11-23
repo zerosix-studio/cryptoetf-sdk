@@ -15,6 +15,8 @@ from .types import (
     AssetFlows,
     AssetFundFlows,
     CefiIndex,
+    ChannelIndex,
+    WsmiIndex,
     CostBasis,
     EtfPrices,
     Filing,
@@ -28,6 +30,22 @@ from .types import (
     IssuerRevenue,
     Prices,
     RateLimit,
+    RwaChains,
+    RwaFlowHistory,
+    RwaFlows,
+    RwaHolders,
+    RwaIssuers,
+    RwaOverview,
+    RwaPage,
+    RwaPremiums,
+    RwaProductDetail,
+    RwaVenues,
+    RwaWeekends,
+    StablecoinDetail,
+    StablecoinHistory,
+    Stablecoins,
+    StablecoinsFrozen,
+    StablecoinsFrozenAddresses,
     Staking,
     Ticker,
     VsMiners,
@@ -36,7 +54,7 @@ from .types import (
 
 DEFAULT_BASE_URL = "https://api.cryptoetf.today/v1"
 KEY_HELP = (
-    "API key required. Get a free key at https://cryptoetf.today/en/profile "
+    "API key required. Get a free key at https://cryptoetf.today/en/console/keys "
     "and pass CryptoETF(api_key=...) or set CRYPTOETF_API_KEY."
 )
 
@@ -157,6 +175,143 @@ class _Institutions:
         return cast(FundInstitutions, self._c._get(f"/institutions/funds/{_seg(ticker)}", q or None))
 
 
+def _q(**params: Any) -> Optional[Dict[str, str]]:
+    out = {k: str(v) for k, v in params.items() if v is not None and v != ""}
+    return out or None
+
+
+class _Stablecoins:
+    """Stablecoins: supply, USD value and flows per coin and chain (whole US dollars).
+
+    Free keys get the snapshot and 30 days of history; paid plans the whole history
+    and frozen addresses.
+    """
+
+    def __init__(self, client: "CryptoETF"):
+        self._c = client
+
+    def index(self) -> ChannelIndex:
+        """Stablecoin index: the WSMI channel for stablecoins, 0–100, with history."""
+        return cast(ChannelIndex, self._c._get("/index/stablecoins"))
+
+    def list(self, chain: Optional[str] = None) -> Stablecoins:
+        """Every stablecoin with circulating supply, USD value and 7/30-day flows; one chain if given."""
+        return cast(Stablecoins, self._c._get("/stablecoins", _q(chain=chain)))
+
+    def history(self, *, chain: Optional[str] = None, id: Optional[int] = None) -> StablecoinHistory:
+        """Daily USD value: all stablecoins, one chain and / or one coin (``id`` from ``list()``)."""
+        return cast(StablecoinHistory, self._c._get("/stablecoins/history", _q(chain=chain, id=id)))
+
+    def get(self, id: int) -> StablecoinDetail:
+        """One coin: contracts on every chain and daily circulating supply."""
+        return cast(StablecoinDetail, self._c._get(f"/stablecoins/{_seg(str(id))}"))
+
+    def frozen(self) -> StablecoinsFrozen:
+        """Frozen balances per coin contract."""
+        return cast(StablecoinsFrozen, self._c._get("/stablecoins/frozen"))
+
+    def frozen_addresses(self) -> StablecoinsFrozenAddresses:
+        """Largest frozen addresses and the frozen history. Paid plans."""
+        return cast(StablecoinsFrozenAddresses, self._c._get("/stablecoins/frozen/addresses"))
+
+
+class _Rwa:
+    """Tokenized real-world assets: treasuries, gold, stocks, credit and more (whole US dollars).
+
+    Free keys get the market snapshot, 30 days of flows and the top 25 products;
+    the rest is on paid plans. Filters take comma-separated ids.
+    """
+
+    def __init__(self, client: "CryptoETF"):
+        self._c = client
+
+    def index(self) -> ChannelIndex:
+        """Tokenized asset index: the WSMI channel for tokenized assets, 0–100, with history."""
+        return cast(ChannelIndex, self._c._get("/index/rwa"))
+
+    def overview(self) -> RwaOverview:
+        """Market by segment with totals, top issuers and movers."""
+        return cast(RwaOverview, self._c._get("/rwa/overview"))
+
+    def flows(self, days: Optional[int] = None) -> RwaFlows:
+        """Daily net flow by segment (Free: up to 30 days; paid: up to 120 with issuers and top products)."""
+        return cast(RwaFlows, self._c._get("/rwa/flows", _q(days=days)))
+
+    def flow_history(self) -> RwaFlowHistory:
+        """Daily net flow over the whole history. Paid plans."""
+        return cast(RwaFlowHistory, self._c._get("/rwa/flows/history"))
+
+    def issuers(self, *, segment: Optional[str] = None, chain: Optional[str] = None, asset: Optional[str] = None) -> RwaIssuers:
+        """Every issuer with value, flows, tokens, holders and segments."""
+        return cast(RwaIssuers, self._c._get("/rwa/issuers", _q(segment=segment, chain=chain, asset=asset)))
+
+    def chains(self, *, segment: Optional[str] = None, issuer: Optional[str] = None, asset: Optional[str] = None) -> RwaChains:
+        """Every chain with tokenized assets."""
+        return cast(RwaChains, self._c._get("/rwa/chains", _q(segment=segment, issuer=issuer, asset=asset)))
+
+    def products(
+        self,
+        *,
+        segment: Optional[str] = None,
+        issuer: Optional[str] = None,
+        chain: Optional[str] = None,
+        asset: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> RwaPage:
+        """Products, largest first (Free: top 25; paid: every product, paged, with price and APY)."""
+        q = _q(segment=segment, issuer=issuer, chain=chain, asset=asset, limit=limit, offset=offset)
+        return cast(RwaPage, self._c._get("/rwa/products", q))
+
+    def product(self, slug: str, days: Optional[int] = None) -> RwaProductDetail:
+        """One product by slug, ticker or contract address, with contracts and daily history. Paid plans."""
+        return cast(RwaProductDetail, self._c._get(f"/rwa/products/{_seg(slug)}", _q(days=days)))
+
+    def assets(
+        self,
+        *,
+        segment: Optional[str] = None,
+        issuer: Optional[str] = None,
+        chain: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> RwaPage:
+        """Underlyings (a share, T-bills, gold …) summed over issuers and chains. Paid plans."""
+        q = _q(segment=segment, issuer=issuer, chain=chain, limit=limit, offset=offset)
+        return cast(RwaPage, self._c._get("/rwa/assets", q))
+
+    def tokens(
+        self,
+        *,
+        segment: Optional[str] = None,
+        issuer: Optional[str] = None,
+        chain: Optional[str] = None,
+        asset: Optional[str] = None,
+        address: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> RwaPage:
+        """Token contracts; pass ``address`` to find one contract on any chain. Paid plans."""
+        q = _q(segment=segment, issuer=issuer, chain=chain, asset=asset, address=address, limit=limit, offset=offset)
+        return cast(RwaPage, self._c._get("/rwa/tokens", q))
+
+    def holders(self, chain: str, address: str, limit: Optional[int] = None) -> RwaHolders:
+        """Largest holders of one contract. Paid plans."""
+        return cast(RwaHolders, self._c._get(f"/rwa/tokens/{_seg(chain)}/{_seg(address)}/holders", _q(limit=limit)))
+
+    def premiums(self) -> RwaPremiums:
+        """Tokenized stocks against the share price. Paid plans."""
+        return cast(RwaPremiums, self._c._get("/rwa/premiums"))
+
+    def weekends(self) -> RwaWeekends:
+        """Tokenized stocks over weekends. Paid plans."""
+        return cast(RwaWeekends, self._c._get("/rwa/weekends"))
+
+    def venues(self) -> RwaVenues:
+        """Where tokenized assets are held: lending, DEX pools, reserves, vaults. Paid plans."""
+        return cast(RwaVenues, self._c._get("/rwa/venues"))
+
+
 class CryptoETF:
     """Daily net flows of US spot crypto ETFs for 16 assets, fund by fund, plus
     fund AUM, the CEFI sentiment index and coin prices.
@@ -194,13 +349,22 @@ class CryptoETF:
         self.filings = _Filings(self)
         #: Paid plans: ``overview(period)``, ``fund(ticker, period=, limit=)``.
         self.institutions = _Institutions(self)
+        #: Stablecoins: ``list()``, ``history()``, ``get(id)``, ``frozen()``; paid: ``frozen_addresses()``.
+        self.stablecoins = _Stablecoins(self)
+        #: Tokenized RWA: ``overview()``, ``flows()``, ``issuers()``, ``chains()``, ``products()``; paid: the rest.
+        self.rwa = _Rwa(self)
 
     def funds(self, asset: Optional[str] = None) -> Funds:
         """Fund directory with assets under management; all 16 assets unless ``asset`` is given."""
         return cast(Funds, self._get("/funds", {"asset": asset} if asset else None))
 
+    def wsmi(self) -> WsmiIndex:
+        """WSMI — Wall Street Money Index: one 0–100 reading across spot crypto ETFs (CEFI, 50%),
+        stablecoins (30%) and tokenized assets (20%), with channel parts and history."""
+        return cast(WsmiIndex, self._get("/index/wsmi"))
+
     def cefi(self) -> CefiIndex:
-        """CEFI — Crypto ETF Flow Index, a 0–100 sentiment gauge, with its recent history."""
+        """CEFI — Crypto ETF Flow Index, the ETF channel of WSMI: a 0–100 gauge with its recent history."""
         return cast(CefiIndex, self._get("/index/cefi"))
 
     def tickers(self) -> List[Ticker]:

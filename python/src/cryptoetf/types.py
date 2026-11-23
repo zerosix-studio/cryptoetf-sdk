@@ -104,6 +104,48 @@ class CefiIndex(TypedDict):
     history: List[IndexPoint]
 
 
+class WsmiParts(TypedDict):
+    """Channel indexes behind one WSMI value, each 0–100 (None while a channel has no reading)."""
+
+    etf: Optional[int]
+    stb: Optional[int]
+    rwa: Optional[int]
+
+
+class WsmiPoint(TypedDict):
+    date: str
+    value: float
+    parts: WsmiParts
+
+
+class WsmiIndex(TypedDict):
+    """WSMI — Wall Street Money Index: spot crypto ETFs (CEFI, 50%), stablecoins (30%), tokenized assets (20%)."""
+
+    index: str
+    current: int
+    date: str
+    change: Optional[float]
+    weekAgo: Optional[int]
+    monthAgo: Optional[int]
+    parts: WsmiParts
+    weights: Dict[str, float]
+    windowDays: int
+    history: List[WsmiPoint]
+
+
+class ChannelIndex(TypedDict):
+    """Stablecoin or tokenized asset index — one WSMI channel on its own, 0–100."""
+
+    index: str
+    current: int
+    date: str
+    change: Optional[float]
+    weekAgo: Optional[int]
+    monthAgo: Optional[int]
+    windowDays: int
+    history: List[IndexPoint]
+
+
 class Ticker(TypedDict):
     symbol: str
     asset: str
@@ -341,3 +383,23 @@ Filings = Dict[str, Any]
 Filing = Dict[str, Any]
 Institutions = Dict[str, Any]
 FundInstitutions = Dict[str, Any]
+
+#: Stablecoins and tokenized RWA. Amounts are whole US dollars (``…Usd``), not
+#: millions as in ETF flows; a missing value is None. Shapes are documented at
+#: https://docs.cryptoetf.today (tags "Stablecoins" and "Tokenized RWA").
+Stablecoins = Dict[str, Any]
+StablecoinHistory = Dict[str, Any]
+StablecoinDetail = Dict[str, Any]
+StablecoinsFrozen = Dict[str, Any]
+StablecoinsFrozenAddresses = Dict[str, Any]
+RwaOverview = Dict[str, Any]
+RwaFlows = Dict[str, Any]
+RwaFlowHistory = Dict[str, Any]
+RwaIssuers = Dict[str, Any]
+RwaChains = Dict[str, Any]
+RwaPage = Dict[str, Any]
+RwaProductDetail = Dict[str, Any]
+RwaHolders = Dict[str, Any]
+RwaPremiums = Dict[str, Any]
+RwaWeekends = Dict[str, Any]
+RwaVenues = Dict[str, Any]
